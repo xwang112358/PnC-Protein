@@ -4,19 +4,64 @@ import torch
 from encoding_decoding.encoding_costs import *
 from utils.utils_subgraphs import induced_subgraph, compute_degrees, remove_overlapping_subgraphs
 
-# epsilon = 1e-5
+# Small constant to avoid numerical issues with log probabilities
 epsilon = 1e-7
 
-# up to 15 nodes
+# Number of connected graphs with n nodes, for n=1 to 14
+# These values come from the Online Encyclopedia of Integer Sequences (OEIS A001349)
 num_connected_graphs = [1, 1, 2, 6, 21, 112, 853, 11117,
                         261080, 11716571, 1006700565, 164059830476, 50335907869219,
                         29003487462848061]
-#31397381142761241960]
+#31397381142761241960] # n=15 value omitted due to size
 log_univ_size = torch.log2(torch.tensor(num_connected_graphs))
 
 class CompressionEnvironment:
+    """Environment for graph compression using dictionary learning.
+    
+    This class handles:
+    1. Dictionary management - storing and updating graph atoms
+    2. Cost computation - calculating description lengths for graphs and subgraphs
+    3. Graph manipulation - removing subgraphs and maintaining graph state
+    """
     
     def __init__(self, **kwargs):
+        """Initialize compression environment with encoding schemes and parameters.
+        
+        Args:
+            device: Torch device to use
+            directed: Whether graphs are directed
+            isomorphism_module: Module for checking graph isomorphism
+            dictionary_encoding: How to encode dictionary atoms ('graphs' or 'isomorphism_classes') 
+            num_nodes_atom_encoding: How to encode number of nodes in atoms
+            num_edges_atom_encoding: How to encode number of edges in atoms
+            adj_matrix_atom_encoding: How to encode adjacency matrices of atoms
+            dict_subgraphs_encoding: How to encode dictionary subgraphs
+            num_nodes_encoding: How to encode number of nodes in non-dictionary subgraphs
+            num_edges_encoding: How to encode number of edges in non-dictionary subgraphs
+            adj_matrix_encoding: How to encode adjacency matrices of non-dictionary subgraphs
+            cut_encoding: How to encode cuts between subgraphs
+            cut_size_encoding: How to encode size of cuts
+            cut_edges_encoding: How to encode cut edges
+            node_attr_encoding: How to encode node attributes
+            edge_attr_encoding: How to encode edge attributes
+            num_nodes_baseline_encoding: How to encode number of nodes in baseline
+            num_edges_baseline_encoding: How to encode number of edges in baseline
+            adj_matrix_baseline_encoding: How to encode adjacency matrices in baseline
+            n_h_max_dict: Maximum number of nodes in dictionary atoms
+            n_h_min_dict: Minimum number of nodes in dictionary atoms
+            c_max: Maximum cut size
+            n_max: Maximum number of nodes
+            e_max: Maximum number of edges
+            d_max: Maximum node degree
+            b_min: Minimum number of blocks
+            precision: Precision for float encoding
+            universe_type: Type of universe ('fixed' or 'adaptive')
+            max_dict_size: Maximum dictionary size
+            dictionary: Initial dictionary atoms
+            node_attr_unique_values: Unique node attribute values
+            edge_attr_unique_values: Unique edge attribute values
+            ema_coeff: Coefficient for exponential moving average
+        """
     
         print("Preparing compression environment... ")
 
@@ -87,6 +132,25 @@ class CompressionEnvironment:
     def map_to_dict(self, num_vertices, num_edges, edge_index,
                     dictionary_num_vertices, dictionary_num_edges, dictionary, query_inds,
                     directed=False, attr_mapping=None, node_features=None, edge_features=None):
+        """Map a graph to a dictionary atom if an isomorphic match exists.
+        
+        Args:
+            num_vertices: Number of nodes in graph
+            num_edges: Number of edges in graph  
+            edge_index: Edge indices of graph
+            dictionary_num_vertices: List of number of vertices for each atom
+            dictionary_num_edges: List of number of edges for each atom
+            dictionary: List of dictionary atoms
+            query_inds: Indices of atoms to check
+            directed: Whether graph is directed
+            attr_mapping: Mapping for attributes
+            node_features: Node features
+            edge_features: Edge features
+            
+        Returns:
+            found_atom_index: Index of matching atom (-1 if no match)
+            G: Graph in isomorphism module format
+        """
         # attributes
         if self.isomorphism_module.node_attr_dims is not None or self.isomorphism_module.edge_attr_dims is not None:
             node_attrs, edge_attrs = attr_mapping.map(node_features, edge_features)
@@ -116,18 +180,44 @@ class CompressionEnvironment:
         return found_atom_index, G
 
     def update_dict_atoms(self, atoms, n_h_s, e_h_s):
+        """Add new atoms to the dictionary.
+        
+        Args:
+            atoms: List of new atoms
+            n_h_s: List of number of vertices for new atoms
+            e_h_s: List of number of edges for new atoms
+        """
         self.dictionary += atoms
         self.dictionary_num_vertices += n_h_s
         self.dictionary_num_edges += e_h_s
         return
 
     def estimate_atom_freqs_probs(self, atom_indices):
-
+        """Estimate atom frequencies and probabilities from observed indices.
+        
+        Args:
+            atom_indices: Tensor of atom indices
+            
+        Returns:
+            estimated_atom_freqs: Tensor of estimated frequencies
+            estimated_atom_probs: Tensor of estimated probabilities
+        """
         estimated_atom_freqs = torch.bincount(atom_indices, minlength=len(self.dictionary))
         estimated_atom_probs = estimated_atom_freqs / estimated_atom_freqs.sum()
         return estimated_atom_freqs, estimated_atom_probs
 
     def update_empirical_atom_freqs_probs(self, estimated_atom_freqs, estimated_atom_probs, save_update=True):
+        """Update empirical atom frequencies and probabilities using exponential moving average.
+        
+        Args:
+            estimated_atom_freqs: New frequency estimates
+            estimated_atom_probs: New probability estimates
+            save_update: Whether to save the update
+            
+        Returns:
+            empirical_atom_freqs: Updated frequencies
+            empirical_atom_probs: Updated probabilities
+        """
         empirical_atom_freqs = (1 - self.ema_coeff) * self.empirical_atom_freqs[0:len(self.dictionary)] \
                                + self.ema_coeff * estimated_atom_freqs
         empirical_atom_probs = (1 - self.ema_coeff) * self.empirical_atom_probs[0:len(self.dictionary)] \
@@ -138,6 +228,14 @@ class CompressionEnvironment:
         return empirical_atom_freqs, empirical_atom_probs
 
     def sorted_atoms_in_dict(self, x_a=None):
+        """Get sorted indices of atoms by probability.
+        
+        Args:
+            x_a: Binary mask for valid atoms
+            
+        Returns:
+            List of sorted atom indices
+        """
         if x_a is None:
             sorted_probs_inds = torch.argsort(self.empirical_atom_probs[0:len(self.dictionary)], descending=True)
         else:
@@ -148,6 +246,15 @@ class CompressionEnvironment:
 
 
     def baseline_graph_cost(self, n, e):
+        """Compute baseline cost for encoding a graph.
+        
+        Args:
+            n: Number of nodes
+            e: Number of edges
+            
+        Returns:
+            Cost in bits
+        """
         return compute_cost_graph(self.n_max, n, e,
                                   self.num_nodes_baseline_encoding,
                                   self.num_edges_baseline_encoding, 
@@ -163,6 +270,15 @@ class CompressionEnvironment:
     
     
     def graph_cost(self, n, e):
+        """Compute cost for encoding a non-dictionary graph.
+        
+        Args:
+            n: Number of nodes
+            e: Number of edges
+            
+        Returns:
+            Cost in bits
+        """
         return compute_cost_graph(self.n_max, n, e,
                                   self.num_nodes_encoding,
                                   self.num_edges_encoding, 
@@ -177,6 +293,11 @@ class CompressionEnvironment:
                                   self.edge_attr_unique_values)
     
     def compute_atom_costs(self):
+        """Compute encoding costs for dictionary atoms.
+        
+        Returns:
+            Tensor of atom costs in bits
+        """
         mask_to_compute = self.atom_costs[0:len(self.dictionary)] == -1
         if mask_to_compute.sum()!=0:
             if self.dictionary_encoding == 'graphs':
@@ -205,6 +326,17 @@ class CompressionEnvironment:
         return self.atom_costs[0:len(self.dictionary)]
 
     def cut_cost(self, c_ij, n_h_ij, e_h_ij, b=None):
+        """Compute cost for encoding cuts between subgraphs.
+        
+        Args:
+            c_ij: Cut sizes
+            n_h_ij: Number of nodes in subgraph pairs
+            e_h_ij: Number of edges in subgraph pairs
+            b: Number of blocks
+            
+        Returns:
+            Cost in bits
+        """
         n_h_i, n_h_j = n_h_ij[0], n_h_ij[1]
         e_h_i, e_h_j = e_h_ij[0], e_h_ij[1]
         return compute_cost_cut(c_ij, n_h_i, n_h_j,
@@ -230,7 +362,23 @@ class CompressionEnvironment:
                    atom_probs,
                    cut_size_probs,
                    log_probs=None):
-
+        """Compute description length for a graph decomposition.
+        
+        Args:
+            subgraphs: Dictionary containing subgraph information
+            x_a: Binary mask for valid atoms
+            b_probs: Block count probabilities
+            delta_prob: Probability of non-dictionary subgraph
+            atom_probs: Atom probabilities
+            cut_size_probs: Cut size probabilities
+            log_probs: Log probabilities for subgraphs
+            
+        Returns:
+            cost_G: Total description length
+            baseline: Baseline encoding cost
+            log_probs: Log probabilities
+            cost_terms: Dictionary of cost components
+        """
         atom_indices = subgraphs['atom_indices']
         if x_a is not None:
             x_h = x_a[atom_indices]
@@ -291,6 +439,24 @@ class CompressionEnvironment:
 
     def subgraph_removal(self,  batched_graph, subgraphs, n_h_s, e_h_s, c_s,
                          num_nodes=None, remaining_nodes=None, relabel_nodes=None, candidate_subgraphs=True):
+        """Remove subgraphs from a graph and update state.
+        
+        Args:
+            batched_graph: Input graph in batched format
+            subgraphs: List of subgraphs to remove
+            n_h_s: Number of nodes in subgraphs
+            e_h_s: Number of edges in subgraphs  
+            c_s: Cut sizes
+            num_nodes: Total number of nodes
+            remaining_nodes: Set of remaining nodes
+            relabel_nodes: Whether to relabel nodes
+            candidate_subgraphs: Whether to update candidate subgraphs
+            
+        Returns:
+            new_batched_graph: Updated graph
+            remaining_nodes: Updated remaining nodes
+            relabelling: Node relabelling map
+        """
         
         if relabel_nodes is None:
             relabel_nodes=False

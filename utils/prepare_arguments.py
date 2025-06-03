@@ -8,18 +8,36 @@ def prepare_environment_args(args,
                              isomorphism_module,
                              node_attr_unique_values,
                              edge_attr_unique_values):
+    """
+    Prepares environment arguments by processing input args and graph data.
     
-    # n_max
+    Args:
+        args: Dictionary of input arguments
+        graphs_ptg: List of PyTorch Geometric graph objects
+        dictionary: Dictionary object
+        device: PyTorch device
+        isomorphism_module: Module for graph isomorphism checking
+        node_attr_unique_values: Unique node attribute values
+        edge_attr_unique_values: Unique edge attribute values
+        
+    Returns:
+        Dictionary of processed environment arguments
+    """
+    
+    # Set n_max (maximum number of nodes) based on input args and actual max graph size
     if args['n_max'] is not None:
         args['n_max'] = max(args['n_max'], max([graph.graph_size for graph in graphs_ptg]))
     else:
         args['n_max'] = max([graph.graph_size for graph in graphs_ptg])
-    # e_max
+        
+    # Set e_max (maximum number of edges) based on whether graph is directed
     if args['e_max'] is not None:
         if args['directed']:
             args['e_max'] = max(args['e_max'], max([graph.edge_index.shape[1] for graph in graphs_ptg]))
         else:
             args['e_max'] = max(args['e_max'], int(max([graph.edge_index.shape[1] for graph in graphs_ptg])/2))
+            
+    # Set d_max (maximum degree) for directed/undirected graphs
     if args['d_max'] is not None:
         if args['directed']:
             args['d_max'] = [max(args['d_max'][0], max([int(max(degree(graph.edge_index[0])).item()) for graph in graphs_ptg])),
@@ -27,22 +45,24 @@ def prepare_environment_args(args,
         else:
             args['d_max'] = [max(args['d_max'], max([int(max(degree(graph.edge_index[0])).item()) for graph in graphs_ptg]))]
 
+    # Set dictionary size bounds
     if args['n_h_max_dict'] is None or args['n_h_max_dict']==-1:
         args['n_h_max_dict'] = int(args['n_max'])
     if args['n_h_min_dict'] is None:
         args['n_h_min_dict'] = 1
 
+    # Set subgraph size bounds
     if args['n_h_max'] is None or args['n_h_max']==-1:
         args['n_h_max'] = int(args['n_max'])
     if args['n_h_min'] is None:
         args['n_h_min'] = 1
 
-    #args['b_max'] = math.ceil(int(args['n_max'])/args['n_h_min'])
+    # Set batch size bounds
     args['b_max'] = int(args['n_max']) if args['b_max'] is None else max(args['b_max'], int(args['n_max']))
     args['b_min'] = math.ceil(int(args['n_max'])/args['n_h_max']) if args['b_min'] is None \
         else min(args['b_min'], math.ceil(int(args['n_max'])/args['n_h_max']))
 
-
+    # Create environment args dictionary with selected keys from input args
     environment_args={}
     for key in ['directed',
                 'universe_type', 'max_dict_size',
@@ -57,6 +77,7 @@ def prepare_environment_args(args,
                 'ema_coeff']:
         environment_args[key] = args[key]
      
+    # Add additional environment arguments
     environment_args['dictionary'] = dictionary
     environment_args['device'] = device
     environment_args['isomorphism_module'] = isomorphism_module
@@ -65,16 +86,29 @@ def prepare_environment_args(args,
     return environment_args
 
 def prepare_model_args(args, dictionary_size):
+    """
+    Prepares model arguments by processing input args and dictionary size.
+    
+    Args:
+        args: Dictionary of input arguments
+        dictionary_size: Size of the dictionary
+        
+    Returns:
+        Dictionary of processed model arguments
+    """
     print('Preparing model arguments....')
     model_args = {}
-    # define if degree is going to be used as a feature and when (for each layer or only at initialization)
+    
+    # Configure degree feature injection settings
     if args['inject_degrees']:
         model_args['degree_as_tag'] = [args['degree_as_tag'] for _ in range(args['num_layers'])]
     else:
         model_args['degree_as_tag'] = [args['degree_as_tag']] + [False for _ in range(args['num_layers'] - 1)]
-    # define if existing features are going to be retained when the degree is used as a feature
+        
+    # Configure feature retention settings
     model_args['retain_features'] = [args['retain_features']] + [True for _ in range(args['num_layers'] - 1)]
-    # replicate d_out dimensions for the node/edge features and degree embeddings
+    
+    # Set embedding dimensions for nodes, edges and degrees
     if args['d_out_node_embedding'] is None:
         model_args['d_out_node_embedding'] = args['d_out']
     if args['d_out_edge_embedding'] is None:
@@ -83,53 +117,56 @@ def prepare_model_args(args, dictionary_size):
         model_args['d_out_edge_embedding'] = [args['d_out_edge_embedding'] for _ in range(args['num_layers'])]
     if args['d_out_degree_embedding'] is None:
         model_args['d_out_degree_embedding'] = args['d_out']
-    # replicate d_out dimensions if the rest are not defined (msg function, mlp hidden dimension, encoders, etc.)
-    # and repeat hyperparams for every layer
+        
+    # Configure message passing dimensions
     if args['d_msg'] == -1:
         model_args['d_msg'] = [None for _ in range(args['num_layers'])]
     elif args['d_msg'] is None:
         model_args['d_msg'] = [args['d_out'] for _ in range(args['num_layers'])]
     else:
         model_args['d_msg'] = [args['d_msg'] for _ in range(args['num_layers'])]
+        
+    # Configure MLP hidden dimensions
     if args['d_h'] is None:
         model_args['d_h'] = [[args['d_out']] * (args['num_mlp_layers'] - 1) for _ in range(args['num_layers'])]
     else:
         model_args['d_h'] = [[args['d_h']] * (args['num_mlp_layers'] - 1) for _ in range(args['num_layers'])]
+        
+    # Set training parameters per layer
     model_args['train_eps'] = [args['train_eps'] for _ in range(args['num_layers'])]
     model_args['bn'] = [args['bn'] for _ in range(args['num_layers'])]
     if len(args['final_projection']) == 1:
         model_args['final_projection'] = [args['final_projection'][0] for _ in range(args['num_layers'])] + [True]
     model_args['dropout'] = [args['dropout'] for _ in range(args['num_layers'])] + [args['dropout']]
-    # define output dimension based on the type of the partitioning algorithm
+    
+    # Configure output dimensions based on partitioning algorithm
     if not args['candidate_subgraphs']:
         if args['partitioning_algorithm'] == 'subgraph_selection':
-            # categorical on possible subgraph sizes + categorical on the vertices
+            # Categorical on possible subgraph sizes + categorical on vertices
             model_args['out_graph_features'] = args['n_h_max'] - args['n_h_min'] + 1 \
                 if (args['n_h_max'] is not None) and (args['n_h_min'] is not None) else None
             model_args['out_node_features'] = 1
         elif args['partitioning_algorithm'] == 'subgraph_selection_w_termination':
-            # bernoulli (continue or terminate) + categorical on the vertices
+            # Bernoulli (continue/terminate) + categorical on vertices
             model_args['out_graph_features'] = 1
             model_args['out_node_features'] = 1
         elif args['partitioning_algorithm'] =='contraction':
-            # categorical on the number of clusters (or bernoulli - terminate/continue) +
-            # categorical on the edges (contract until desired num clusters is reached)
+            # Categorical on clusters + categorical on edges
             model_args['out_graph_features'] = args['n_h_max'] - args['n_h_min'] + 1 \
                 if (args['n_h_max'] is not None) and (args['n_h_min'] is not None) else None
             model_args['out_edge_features'] = 1
             model_args['directed'] = args['directed']
         elif args['partitioning_algorithm'] =='clustering':
-            # categorical on the number of clusters + clustering algorithm in the latent space
+            # Categorical on clusters + latent space clustering
             model_args['out_graph_features'] = args['n_h_max'] - args['n_h_min'] + 1 \
                 if (args['n_h_max'] is not None) and (args['n_h_min'] is not None) else None
             model_args['out_node_features'] = args['d_out']
-            # for iterative clustering in the latent space
             model_args['clustering_iters'] = args['clustering_iters']
             model_args['clustering_temp'] =  args['clustering_temp']
         else:
             raise NotImplementedError('partitioning algorithm {} not implemented'.format(args['partitioning_algorithm']))
     else:
-        # independent set problem (here we sample subgraphs from the candidate set iteratively)
+        # Configure for independent set problem with iterative subgraph sampling
         model_args['out_subgraph_features'] = 1
         model_args['dictionary_size'] = dictionary_size
         if args['degree_as_tag_pool'] is None:
@@ -146,8 +183,11 @@ def prepare_model_args(args, dictionary_size):
             model_args['d_h_pool'] = args['d_h'][0]
         if args['aggr_pool'] is None:
             model_args['aggr_pool'] = args['aggr']
-    # repeat width for every layer
+            
+    # Set output dimension for each layer
     model_args['d_out'] = [args['d_out'] for _ in range(args['num_layers'])]
+    
+    # Copy remaining arguments
     for key in ['input_node_embedding', 'edge_embedding', 'degree_embedding',
                 'inject_edge_features', 'multi_embedding_aggr',
                 'aggr', 'flow', 'extend_dims',

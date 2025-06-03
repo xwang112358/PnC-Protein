@@ -90,6 +90,31 @@ def get_custom_edge_list(ks, substructure_type=None, filename=None):
 
 
 def prepare_dictionary(args, path=None, graphs_ptg=None, split_folder=None):
+    '''
+    Prepares a dictionary of substructures (atoms) for graph analysis.
+    
+    Args:
+        args (dict): Dictionary containing configuration parameters including:
+            - atom_types (list): Types of substructures to include
+            - k (list): Size parameters for each atom type
+            - directed (bool): Whether graphs should be directed
+            - root_folder (str): Root directory for data
+            - custom_edge_lists (list, optional): Custom edge lists for 'custom' atom type
+        path (str, optional): Path to save/load motif data
+        graphs_ptg (list, optional): List of PyTorch Geometric graphs for motif analysis
+        split_folder (str, optional): Subfolder name for splitting data
+        
+    Returns:
+        list: A list of unique non-isomorphic graph-tool Graph objects representing the substructures
+        
+    The function supports various types of substructures:
+    - Basic graphs: cycles, paths, complete graphs, trees, stars
+    - All simple graphs (must be precomputed)
+    - Custom edge lists
+    - Network motifs (computed from input graphs)
+    
+    For motifs, results are cached to avoid recomputation.
+    '''
     ###### choose the substructures: usually loaded from networkx,
     ###### except for 'all_simple_graphs' where they need to be precomputed,
     ###### or when a custom edge list is provided in the input by the user
