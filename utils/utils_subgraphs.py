@@ -86,25 +86,25 @@ def induced_subgraph(subset, edge_index, edge_attr=None, relabel_nodes=False, nu
     device = edge_index.device
 
     if isinstance(subset, list) or isinstance(subset, tuple):
-        subset = torch.tensor(subset, dtype=torch.long)
+        subset = torch.tensor(subset, dtype=torch.long, device=device)
 
     if subset.dtype == torch.bool or subset.dtype == torch.uint8:
-        n_mask = subset
+        n_mask = subset.to(device)
 
         if relabel_nodes:
             n_idx = torch.ones(n_mask.size(0), dtype=torch.long,
                                 device=device)*(-1)
-            n_idx[subset] = torch.arange(subset.sum().item(), device=device)
+            n_idx[subset.to(device)] = torch.arange(subset.sum().item(), device=device)
         else:
             n_idx = torch.arange(num_nodes, device=device)
     else:
         num_nodes = maybe_num_nodes(edge_index, num_nodes)
-        n_mask = torch.zeros(num_nodes, dtype=torch.bool)
-        n_mask[subset] = 1
+        n_mask = torch.zeros(num_nodes, dtype=torch.bool, device=device)
+        n_mask[subset.to(device)] = 1
 
         if relabel_nodes:
             n_idx = torch.ones(num_nodes, dtype=torch.long, device=device)*(-1)
-            n_idx[subset] = torch.arange(subset.size(0), device=device)
+            n_idx[subset.to(device)] = torch.arange(subset.size(0), device=device)
         else:
             n_idx = torch.arange(num_nodes, device=device)
 

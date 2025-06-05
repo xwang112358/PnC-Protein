@@ -2,7 +2,7 @@ import os
 import random
 from copy import deepcopy
 import torch
-from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 from utils.attributes import AttrMapping
 from utils.generate_dataset import generate_dataset
 from utils.feature_encoding import encode_features

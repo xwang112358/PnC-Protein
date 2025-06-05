@@ -13,6 +13,16 @@ import os
 import torch_geometric.datasets as ptg_datasets
 
 def unique_indices(num_unique, inverse):
+    """
+    Find unique indices from an inverse mapping tensor.
+    
+    Args:
+        num_unique (int): Number of unique elements
+        inverse (torch.Tensor): Inverse mapping tensor from torch.unique
+        
+    Returns:
+        torch.Tensor: Indices of unique elements in the original tensor
+    """
     perm = torch.arange(inverse.size(0), dtype=inverse.dtype, device=inverse.device)
     inverse, perm = inverse.flip([0]), perm.flip([0])
     perm = inverse.new_empty(num_unique).scatter_(0, inverse, perm)
@@ -21,9 +31,27 @@ def unique_indices(num_unique, inverse):
 def generate_dataset(data_path, 
                      dataset_name,
                      directed):
+    """
+    Generate a standardized dataset from various graph data sources.
+    
+    This function loads and preprocesses graph datasets from different formats and sources
+    (PyTorch Geometric datasets, OGB datasets, ZINC, custom formats) and converts them
+    into a consistent PyTorch Geometric Data format.
+    
+    Args:
+        data_path (str): Path to the dataset directory
+        dataset_name (str): Name of the dataset to load
+        directed (bool): Whether to treat the graphs as directed
+        
+    Returns:
+        tuple: A tuple containing:
+            - graphs_ptg (list): List of PyTorch Geometric Data objects
+            - num_classes (int): Number of classes in the dataset
+            - num_node_type (int or None): Number of node types (for datasets with typed nodes)
+            - num_edge_type (int or None): Number of edge types (for datasets with typed edges)
+    """
 
     ### load and preprocess dataset
-
     dataset_family = os.path.split(os.path.split(data_path)[0])[1]
     if dataset_family == 'PPI':
         dataset_type = 'ptg'
@@ -87,6 +115,30 @@ def generate_dataset(data_path,
 # ------------------------------------------------------------------------
         
 def _prepare(data, directed, dataset_type='ptg', dataset_name=None):
+    """
+    Prepare and standardize a single graph data object.
+    
+    This function takes a graph data object from various formats and converts it
+    into a standardized PyTorch Geometric Data format. It handles node features,
+    edge indices, edge features, removes duplicate edges and self-loops, and
+    computes node degrees.
+    
+    Args:
+        data: Input graph data object (format depends on dataset_type)
+        directed (bool): Whether to treat the graph as directed
+        dataset_type (str, optional): Type of dataset ('ptg' for PyTorch Geometric 
+                                    or 'general' for custom formats). Defaults to 'ptg'.
+        dataset_name (str, optional): Name of the dataset. Defaults to None.
+        
+    Returns:
+        torch_geometric.data.Data: Standardized graph data object with attributes:
+            - x: Node features tensor
+            - edge_index: Edge connectivity tensor
+            - edge_features: Edge features tensor (if available)
+            - graph_size: Number of nodes in the graph
+            - edge_size: Number of edges in the graph
+            - degrees: Node degree tensor
+    """
     new_data = Data()
     # nodes
     if dataset_type == 'ptg':

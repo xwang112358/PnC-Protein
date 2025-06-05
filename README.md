@@ -38,7 +38,7 @@ pip install timeout_decorator
 pip install wandb
 ---  optional ---
 pip install xlrd
-pip install xlutils
+pip install xlutilspytho
 pip install ogb
 ```
 ## Datasets

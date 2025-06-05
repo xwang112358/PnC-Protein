@@ -4,7 +4,7 @@ import os
 import numpy as np
 import torch
 from utils.prepare_data import prepare_dataset, prepape_input_features, prepare_dataloaders
-# from utils.prepare_dictionary import prepare_dictionary
+from utils.prepare_dictionary import prepare_dictionary
 from utils.isomorphism_modules import prepare_isomorphism_module
 from utils.prepare_arguments import prepare_environment_args
 from encoding_decoding.environment import CompressionEnvironment
@@ -34,6 +34,7 @@ def load_dataset_and_environment(args, device, fold_idx):
                                      args['dataset'],
                                      args['dataset_name'],
                                      directed=args['directed'])
+        
         loader_train, _, _ = prepare_dataloaders(args, graphs_ptg, path, fold_idx, False, 0)
         dataset_train = loader_train.dataset
         
@@ -43,14 +44,14 @@ def load_dataset_and_environment(args, device, fold_idx):
         else:
             split_folder = 'split_idx' + '/' + str(fold_idx)
         
-        # Prepare dictionary with motifs
-        # H_set_gt = prepare_dictionary(args, path=path, graphs_ptg=dataset_train, split_folder=split_folder)
-        # args['max_dict_size'] = len(H_set_gt)
-    # else:
+    #     Prepare dictionary with motifs
+        H_set_gt = prepare_dictionary(args, path=path, graphs_ptg=dataset_train, split_folder=split_folder)
+        args['max_dict_size'] = len(H_set_gt)
+    else:
         # Prepare dictionary without motifs
-        # H_set_gt = prepare_dictionary(args)
+        H_set_gt = prepare_dictionary(args)
 
-    assert False
+    # assert False
     
     # Generate/load main dataset with detected/loaded subgraphs
     graphs_ptg = prepare_dataset(path,
@@ -156,13 +157,14 @@ def create_sample_args():
         # Dataset configuration
         'root_folder': '../datasets/',
         'dataset': 'bioinformatics',
-        'dataset_name': 'MUTAG',
+        'dataset_name': 'PROTEINS',
         'directed': False,
         'fold_idx': [0],
         'split': 'given',
         'split_seed': 0,
         'batch_size': 1,
         'num_workers': 0,
+        'seed':0,
         
         # Dictionary and compression settings
         'atom_types': [],  # Empty list means no motifs
@@ -230,46 +232,53 @@ def main():
     # Set fold index
     fold_idx = 0
     
-    try:
+    # try:
         # Load dataset and environment
-        print(f"Loading dataset: {args['dataset']}/{args['dataset_name']}")
-        print(f"Dataset path: {get_dataset_path(args)}")
+    print(f"Loading dataset: {args['dataset']}/{args['dataset_name']}")
+    print(f"Dataset path: {get_dataset_path(args)}")
+    
+    (graphs_ptg, in_features_dims_dict, attr_mapping, H_set_gt, 
+        environment, loader_train, loader_test, loader_val) = load_dataset_and_environment(args, device, fold_idx)
+
+    print('node attribute', graphs_ptg[0].x.shape)
+    print(graphs_ptg[0].edge_index)
+
+    assert False
+
+
+    
+    print("\n" + "="*50)
+    print("DATASET LOADING SUCCESSFUL!")
+    print("="*50)
+    
+    # Print detailed information
+    print(f"Dictionary size: {len(H_set_gt)}")
+    print(f"Feature dimensions: {in_features_dims_dict}")
+    
+    print(f"\nDataloader sizes:")
+    print(f"  - Training loader: {len(loader_train)} batches")
+    if loader_test is not None:
+        print(f"  - Test loader: {len(loader_test)} batches")
+    if loader_val is not None:
+        print(f"  - Validation loader: {len(loader_val)} batches")
+    
+    # Show sample from training loader
+    if len(loader_train) > 0:
+        sample_batch = next(iter(loader_train))
+        print(f"\nSample batch info:")
+        print(f"  - Batch type: {type(sample_batch)}")
+        if hasattr(sample_batch, 'x'):
+            print(f"  - Node features shape: {sample_batch.x.shape}")
+        if hasattr(sample_batch, 'edge_index'):
+            print(f"  - Edge indices shape: {sample_batch.edge_index.shape}")
         
-        (graphs_ptg, in_features_dims_dict, attr_mapping, H_set_gt, 
-         environment, loader_train, loader_test, loader_val) = load_dataset_and_environment(args, device, fold_idx)
-        
-        print("\n" + "="*50)
-        print("DATASET LOADING SUCCESSFUL!")
-        print("="*50)
-        
-        # Print detailed information
-        print(f"Dictionary size: {len(H_set_gt)}")
-        print(f"Feature dimensions: {in_features_dims_dict}")
-        
-        print(f"\nDataloader sizes:")
-        print(f"  - Training loader: {len(loader_train)} batches")
-        if loader_test is not None:
-            print(f"  - Test loader: {len(loader_test)} batches")
-        if loader_val is not None:
-            print(f"  - Validation loader: {len(loader_val)} batches")
-        
-        # Show sample from training loader
-        if len(loader_train) > 0:
-            sample_batch = next(iter(loader_train))
-            print(f"\nSample batch info:")
-            print(f"  - Batch type: {type(sample_batch)}")
-            if hasattr(sample_batch, 'x'):
-                print(f"  - Node features shape: {sample_batch.x.shape}")
-            if hasattr(sample_batch, 'edge_index'):
-                print(f"  - Edge indices shape: {sample_batch.edge_index.shape}")
-        
-    except Exception as e:
-        print(f"\nError loading dataset: {str(e)}")
-        print("Please make sure:")
-        print("1. The dataset path exists")
-        print("2. All required dependencies are installed")
-        print("3. The utils modules are accessible")
-        return False
+    # except Exception as e:
+    #     print(f"\nError loading dataset: {str(e)}")
+    #     print("Please make sure:")
+    #     print("1. The dataset path exists")
+    #     print("2. All required dependencies are installed")
+    #     print("3. The utils modules are accessible")
+    #     return False
     
     return True
 

@@ -41,7 +41,7 @@ def test_neural_part(loader,
     subgraphs_all, atom_indices = [], []
     total_costs_all, baseline_costs_all = [], []
     empirical_subgraphs_types_freqs= [0, 0]
-    empirical_b_freqs = torch.zeros((dictionary_probs_model.b_max,))
+    empirical_b_freqs = torch.zeros((dictionary_probs_model.b_max,), device=device)
     total_num_edges = 0
     agent.train = False
     with torch.no_grad():
