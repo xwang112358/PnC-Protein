@@ -1,6 +1,6 @@
 import numpy as np
-import graph_tool as gt
-import graph_tool.stats as gt_stats
+# import graph_tool as gt
+# import graph_tool.stats as gt_stats
 import networkx as nx
 from scipy.sparse import csr_matrix
 

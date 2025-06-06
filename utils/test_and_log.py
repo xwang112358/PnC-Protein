@@ -9,6 +9,17 @@ from utils.loss_evaluation_fns import *
 from utils.visualisation import visualise_subgraphs, visualisation_log
 
 def prepare_logs(args, path, fold_idx=''):
+    """
+    Prepares directories for storing results and model checkpoints.
+
+    Args:
+        args (dict): Dictionary of arguments containing model and results folder names.
+        path (str): Base path for results.
+        fold_idx (str, optional): Identifier for the current fold in cross-validation. Defaults to ''.
+
+    Returns:
+        str: Path to the checkpoint directory.
+    """
     # prepare result folder
     if 'model_name' in args:
         results_folder = os.path.join(path, 'results', args['results_folder'], str(fold_idx), args['model_name'])
@@ -36,6 +47,22 @@ def test_neural_part(loader,
                      visualise_data_dict=None,
                      n_iters_test=None,
                      **kwargs):
+    """
+    Tests the neural part of the model on a given data loader.
+
+    Args:
+        loader: DataLoader for the dataset to test on.
+        agent: The compression agent.
+        dictionary_probs_model: The probabilistic model for the dictionary.
+        evaluation_fn: Function to compute evaluation metrics.
+        subgraphs (optional): Pre-computed subgraphs. Defaults to None.
+        visualise_data_dict (optional): Dictionary for storing visualisation data. Defaults to None.
+        n_iters_test (optional): Number of iterations for testing. Defaults to None (all data).
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        dict: A dictionary containing various evaluation metrics.
+    """
     device = next(agent.policy.parameters()).device
 
     subgraphs_all, atom_indices = [], []
@@ -136,6 +163,22 @@ def test_fixed_part(loader,
                     visualise_data_dict=None,
                     n_iters_test=None,
                     **kwargs):
+    """
+    Tests the fixed part of the model (pre-defined partitioning) on a given data loader.
+
+    Args:
+        loader: DataLoader for the dataset to test on.
+        agent: The compression agent.
+        dictionary_probs_model: The probabilistic model for the dictionary.
+        evaluation_fn: Function to compute evaluation metrics.
+        subgraphs: Pre-computed subgraphs representing the fixed partitioning.
+        visualise_data_dict (optional): Dictionary for storing visualisation data. Defaults to None.
+        n_iters_test (optional): Number of iterations for testing. Defaults to None (all data).
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        dict: A dictionary containing various evaluation metrics.
+    """
 
     agent.train = False
     total_num_edges = sum([subgraph['e_0'] for subgraph in subgraphs])
@@ -193,6 +236,29 @@ def realtime_logger(loaders,
                     visualise_data_dict=None,
                     n_iters_test=None,
                     **kwargs):
+    """
+    Logs metrics in real-time during training/evaluation, potentially to console and Weights & Biases.
+
+    Args:
+        loaders (list): List of DataLoaders (e.g., train, test, val).
+        dataset_names (list): List of names corresponding to the loaders.
+        agent: The compression agent.
+        dictionary_probs_model: The probabilistic model for the dictionary.
+        evaluation_fn: Function to compute evaluation metrics.
+        epoch (int): Current epoch number.
+        fold_idx (int or str): Identifier for the current fold.
+        wandb_realtime (bool): Flag to enable Weights & Biases real-time logging.
+        initial_dict_size (int): Size of the dictionary at the beginning of the epoch/evaluation.
+        test_fn (function, optional): The function to use for testing (e.g., test_neural_part). Defaults to test_neural_part.
+        subgraphs_all (list, optional): List of pre-computed subgraphs for each dataset. Defaults to None.
+        visualise_data_dict (optional): Dictionary for storing visualisation data. Defaults to None.
+        n_iters_test (optional): Number of iterations for testing. Defaults to None.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        tuple: Contains log string, log arguments, current dictionary selection (x_a),
+               and compression metrics for train, test, val, total, total_w_params, and num_params.
+    """
 
     log = ''
     log_args = []
@@ -333,6 +399,17 @@ def realtime_logger(loaders,
 
 
 def logger(compression_folds, dataset_names, perf_opt, wandb_flag, wandb_realtime):
+    """
+    Logs final performance metrics after training, potentially across multiple folds.
+
+    Args:
+        compression_folds (list): A list where each element is a list of compression metrics
+                                 for a specific dataset across all folds and epochs.
+        dataset_names (list): List of names for the datasets.
+        perf_opt (function): Function to determine the best performance (e.g., np.argmin for loss).
+        wandb_flag (bool): Flag to enable Weights & Biases logging.
+        wandb_realtime (bool): Flag indicating if real-time wandb logging was used (influences summary).
+    """
     datasets_compression_folds, datasets_compression_mean, datasets_compression_std = [], [], []
     for dataset_compression_folds in compression_folds:
         datasets_compression_folds.append(np.array(dataset_compression_folds))

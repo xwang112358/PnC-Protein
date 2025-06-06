@@ -1,9 +1,9 @@
 import torch
 import numpy as np
 
-import graph_tool as gt
-import graph_tool.stats as gt_stats
-import graph_tool.topology as gt_topology
+# import graph_tool as gt
+# import graph_tool.stats as gt_stats
+# import graph_tool.topology as gt_topology
 
 from tqdm import tqdm
 import datetime
@@ -25,7 +25,6 @@ def subgraph_isomorphism(graph, H, directed=False, induced=True):
     G_gt.add_edge_list(list(graph.edge_index.transpose(1,0).cpu().numpy()))
     gt_stats.remove_self_loops(G_gt)
     gt_stats.remove_parallel_edges(G_gt)  
-       
         
     sub_iso = gt_topology.subgraph_isomorphism(H, G_gt, induced=induced, subgraph=True, generator=True) # compute all subgraph isomorphisms
 

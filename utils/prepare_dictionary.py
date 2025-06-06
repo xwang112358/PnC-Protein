@@ -8,14 +8,16 @@ else:
     from tqdm import tqdm
 import numpy as np
 import networkx as nx
-import graph_tool as gt
-import graph_tool.stats as gt_stats
-import graph_tool.topology as gt_topology
-import graph_tool.clustering as gt_clustering
-import graph_tool.generation as gt_generation
+# import graph_tool as gt
+# import graph_tool.stats as gt_stats
+# import graph_tool.topology as gt_topology
+# import graph_tool.clustering as gt_clustering
+# import graph_tool.generation as gt_generation
 from utils.conversions import convert_to_gt
 
 def unique_non_isomorphic(H_set):
+    if not H_set:
+        return []
     H_unique = []
     for H in H_set:
         found = False
@@ -176,4 +178,4 @@ def prepare_dictionary(args, path=None, graphs_ptg=None, split_folder=None):
     H_set_gt = unique_non_isomorphic(H_set_gt)
         
     return H_set_gt
-        
+
