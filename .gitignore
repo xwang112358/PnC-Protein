@@ -8,6 +8,7 @@
 
 datasets/
 baselines/
+PnC_fixed_part
 
 # User-specific stuff
 .idea/**/workspace.xml
