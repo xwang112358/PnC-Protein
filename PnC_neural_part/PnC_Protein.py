@@ -127,6 +127,7 @@ def main(args):
                                                   cut_size_distribution=args['cut_size_distribution'],
                                                   b_min=args['b_min'],
                                                   c_max=None).to(device)
+        
         print("Instantiated model:\n{}".format(dictionary_probs_model))
         # count model params
         params = sum(p.numel() for p in dictionary_probs_model.parameters() if p.requires_grad)

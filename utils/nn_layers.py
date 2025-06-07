@@ -159,14 +159,18 @@ class multi_embedding(torch.nn.Module):
         self.encoder = nn.ModuleList(self.encoder)   
         return
     def forward(self, tensor):
+        embedding = None
         for i in range(tensor.shape[1]):
             embedding_i = self.encoder[i](tensor[:,i])
-            if self.aggr == 'concat':
-                embedding = torch.cat((embedding, embedding_i),1) if i>0 else embedding_i
-            elif self.aggr == 'sum':
-                embedding = embedding + embedding_i if i>0 else embedding_i
+            if i == 0:
+                embedding = embedding_i
             else:
-                raise NotImplementedError('multi embedding aggregation {} is not currently supported.'.format(self.aggr))
+                if self.aggr == 'concat':
+                    embedding = torch.cat((embedding, embedding_i), 1)
+                elif self.aggr == 'sum':
+                    embedding = embedding + embedding_i
+                else:
+                    raise NotImplementedError('multi embedding aggregation {} is not currently supported.'.format(self.aggr))
         return embedding
 
 
@@ -176,10 +180,14 @@ class one_hot_encoder(torch.nn.Module):
         self.d_in = d_in
         return
     def forward(self, tensor):
+        onehot = None
         for i in range(tensor.shape[1]):
             onehot_i = torch.zeros((tensor.shape[0], self.d_in[i]), device=tensor.device)
             onehot_i.scatter_(1, tensor[:,i:i+1], 1)
-            onehot = torch.cat((onehot, onehot_i), 1) if i>0 else onehot_i
+            if i == 0:
+                onehot = onehot_i
+            else:
+                onehot = torch.cat((onehot, onehot_i), 1)
         return onehot
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, self.d_in)
@@ -235,5 +243,4 @@ class central_encoder(nn.Module):
             else:
                 x_central = torch.zeros((num_nodes, self.d_out), device=x_nb.device)
         return x_central, x_nb
-    
-    
+
