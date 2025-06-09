@@ -14,7 +14,14 @@ class AttrMapping:
              'N H2 +', 'N +', 'N -', 'S -', 'I', 'P', 'O H1 +', 'N H1 -', 'O +',
              'S +', 'P H1', 'P H2', 'C H2 -', 'P +', 'S H1 +', 'C H1 -', 'P H1 +']]
             self.edge_attr_values = [['N', 'S', 'D', 'T']]
-            # none, single, double, triple
+        elif dataset_name == 'PROTEINSHAKE':
+            # 20 standard amino acids in ARNDCEQGHILKMFPSTWYV order
+            self.node_attr_values = [['A', 'R', 'N', 'D', 'C', 
+                             'E', 'Q', 'G', 'H', 'I', 
+                             'L', 'K', 'M', 'F', 'P', 
+                             'S', 'T', 'W', 'Y', 'V']]
+            # For protein graphs, edges typically represent spatial proximity
+            self.edge_attr_values = []  # or [] if no edge attributes
         # else:
         #     raise NotImplementedError
         self.mapping_type = mapping_type

@@ -291,7 +291,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_name', type=str, default='MUTAG')
     parser.add_argument('--directed', type=parse.str2bool, default=False)
     parser.add_argument('--fold_idx', type=parse.str2list2int, default=[0])
-    parser.add_argument('--split', type=str, default='given')
+    parser.add_argument('--split', type=str, default='None')
     parser.add_argument('--split_seed', type=int, default=0) # only for random splitting
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--num_workers', type=int, default=0)

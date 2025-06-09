@@ -62,6 +62,11 @@ def load_dataset_and_environment(args, device, fold_idx):
                                  multiprocessing=args['multiprocessing'],
                                  num_processes=args['num_processes'],
                                  candidate_subgraphs=args['candidate_subgraphs'])
+
+
+    print(20 * '=')
+    print(graphs_ptg[0].x)
+    print(20 * '=')
     
     # One-hot encoding and other input feature preparations
     graphs_ptg, in_features_dims_dict, attr_mapping = prepape_input_features(args, graphs_ptg, path)
@@ -155,12 +160,12 @@ def create_sample_args():
     """
     args = {
         # Dataset configuration
-        'root_folder': '../datasets/',
-        'dataset': 'bioinformatics',
-        'dataset_name': 'MUTAG',
+        'root_folder': '../dataset/',
+        'dataset': 'proteinshake',
+        'dataset_name': 'PROTEINS',
         'directed': False,
         'fold_idx': [0],
-        'split': 'given',
+        'split': 'None',
         'split_seed': 0,
         'batch_size': 1,
         'num_workers': 0,
@@ -242,10 +247,16 @@ def main():
 
     print(graphs_ptg[0])
     print('node attribute', graphs_ptg[0].x.shape)
-    print(graphs_ptg[0].x)
+    # print(graphs_ptg[0].x)
     print(type(graphs_ptg))
+    
 
-    assert False
+    # input features 
+
+    d_in_node_features = 1 if graphs_ptg[0].x.dim()==1 else graphs_ptg[0].x.shape[1]
+    print(f"Input node feature dimensions: {d_in_node_features}")
+
+    # assert False
 
 
     
