@@ -7,6 +7,7 @@ from utils.attributes import AttrMapping
 from utils.generate_dataset import generate_dataset
 from utils.feature_encoding import encode_features
 from utils.load_dataset import separate_data, separate_data_given_split
+from utils.proteinshake_data import my_transform
 
 def prepare_dataset(path, 
                     dataset, 
@@ -43,6 +44,14 @@ def prepare_dataset(path,
             #### precompute subgraphs
             from utils.subgraph_detection import detect_load_subgraphs
             graphs_ptg = detect_load_subgraphs(graphs_ptg, data_folder, H_set, directed, multiprocessing, num_processes)
+    elif dataset in ['proteinshake']:
+        from proteinshake.tasks import EnzymeClassTask
+        task = EnzymeClassTask()
+        dataset = task.dataset.to_graph(eps=6, k=36).pyg(transform=my_transform)
+        graphs_ptg = [dataset[i] for i in task.val_index]
+        num_classes = task.num_classes
+        num_node_type, num_edge_type = None, None
+    
     else:
         raise NotImplementedError("Dataset family {} is not currently supported.".format(dataset))
 

@@ -1,8 +1,5 @@
-from proteinshake.datasets import EnzymeCommissionDataset
-from proteinshake.tasks import EnzymeClassTask
 import torch
 from torch_geometric.data import Data
-
 
 def my_transform(item):
     data, protein_dict = item
@@ -39,23 +36,3 @@ def my_transform(item):
         new_data.degrees = torch.zeros(num_nodes, dtype=torch.long)
     
     return new_data 
-
-
-# --------- Loading the dataset and transforming it ---------
-
-# dataset = EnzymeCommissionDataset()
-# dataset = EnzymeCommissionDataset().to_graph(eps=6,k=36).pyg(transform=my_transform)
-# print(type(dataset[0]))
-# print(dataset[0])
-
-
-# --------- Loading the task and splitting it ---------
-task = EnzymeClassTask()
-print('num classes:', task.num_classes)
-dataset = task.dataset.to_graph(eps=6,k=36).pyg(transform=my_transform)
-train_data, val_data, test_data = dataset[task.train_index], dataset[task.val_index], dataset[task.test_index]
-print(f"Train data size: {len(train_data)}")
-print(f"Validation data size: {len(val_data)}")
-print(f"Test data size: {len(test_data)}")
-
-print(dataset[0])

@@ -157,7 +157,7 @@ def create_sample_args():
         # Dataset configuration
         'root_folder': '../datasets/',
         'dataset': 'bioinformatics',
-        'dataset_name': 'PROTEINS',
+        'dataset_name': 'MUTAG',
         'directed': False,
         'fold_idx': [0],
         'split': 'given',
@@ -240,8 +240,10 @@ def main():
     (graphs_ptg, in_features_dims_dict, attr_mapping, H_set_gt, 
         environment, loader_train, loader_test, loader_val) = load_dataset_and_environment(args, device, fold_idx)
 
+    print(graphs_ptg[0])
     print('node attribute', graphs_ptg[0].x.shape)
-    print(graphs_ptg[0].edge_index)
+    print(graphs_ptg[0].x)
+    print(type(graphs_ptg))
 
     assert False
 
