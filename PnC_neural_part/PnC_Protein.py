@@ -43,7 +43,7 @@ def main(args):
         print('Wandb logging activated... ')
         import wandb
         wandb.init(sync_tensorboard=False, project=args['wandb_project'], 
-                   reinit = False, config = args, entity=args['wandb_entity'])
+                   reinit = False, config = args, entity=args['wandb_entity'], mode='offline')
         print('[info] Monitoring with wandb')
     path = os.path.join(args['root_folder'], args['dataset'], args['dataset_name'])
     perf_opt = np.argmin
@@ -70,8 +70,18 @@ def main(args):
                                      multiprocessing=args['multiprocessing'],
                                      num_processes=args['num_processes'],
                                      candidate_subgraphs=args['candidate_subgraphs'])
+
+        print(20 * '#', ' Dataset loaded ', 20 * '#')
+        print(graphs_ptg[0])
+        print('d_in_node_features', graphs_ptg[0].x.dim())
+
         # one-hot encoding etc of input features
         graphs_ptg, in_features_dims_dict, attr_mapping = prepape_input_features(args, graphs_ptg, path)
+        
+        print(20 * '#', ' Input features prepared ', 20 * '#')
+        print("Input features dimensions: {}".format(in_features_dims_dict))
+        
+        
         # prepare and instantiate isomoprhism module
         isomorphism_module = prepare_isomorphism_module(args['isomorphism_type'],
                                                         node_attr_dims=None if args['node_attr_encoding'] is None
@@ -86,6 +96,8 @@ def main(args):
                                                     isomorphism_module,
                                                     in_features_dims_dict['node_attr_unique_values'],
                                                     in_features_dims_dict['edge_attr_unique_values'])
+
+        # assert False
         
         environment = CompressionEnvironment(**environment_args)
         print('Num graphs: {}'.format(len(graphs_ptg)))
@@ -114,7 +126,7 @@ def main(args):
             d_in_degree_embedding=in_features_dims_dict['degree_unique_values'],
             **model_args)
         policy_network = policy_network.to(device)
-        print("Instantiated model:\n{}".format(policy_network))
+        # print("Instantiated model:\n{}".format(policy_network))
         # count model params
         params = sum(p.numel() for p in policy_network.parameters() if p.requires_grad)
         print("[info] Total number of parameters is: {}".format(params))
@@ -128,7 +140,7 @@ def main(args):
                                                   b_min=args['b_min'],
                                                   c_max=None).to(device)
         
-        print("Instantiated model:\n{}".format(dictionary_probs_model))
+        # print("Instantiated model:\n{}".format(dictionary_probs_model))
         # count model params
         params = sum(p.numel() for p in dictionary_probs_model.parameters() if p.requires_grad)
         print("[info] Total number of parameters is: {}".format(params))
@@ -143,6 +155,10 @@ def main(args):
         agent = compression_agent(policy_network,
                                  environment,
                                  **kwargs_agent)
+
+
+        # assert False
+        
         if args['mode'] == 'train':
             print("Training starting now...")
             # optimizer and lr scheduler
@@ -273,11 +289,11 @@ if __name__ == '__main__':
     parser.add_argument('--num_threads', type=int, default=1)
     #----------------- infrastructure + dataloader + logging + visualisation
     parser.add_argument('--mode', type=str, default='train')
-    parser.add_argument('--wandb', type=parse.str2bool, default=False)
-    parser.add_argument('--wandb_realtime', type=parse.str2bool, default=False)
+    parser.add_argument('--wandb', type=parse.str2bool, default=True)
+    parser.add_argument('--wandb_realtime', type=parse.str2bool, default=True)
     parser.add_argument('--wandb_project', type=str, default="graph_compression")
-    parser.add_argument('--wandb_entity', type=str, default="epfl")
-    parser.add_argument('--visualise', type=parse.str2bool, default=False)
+    parser.add_argument('--wandb_entity', type=str, default="xwang38438")
+    parser.add_argument('--visualise', type=parse.str2bool, default=True)
     parser.add_argument('--inds_to_visualise', type=parse.str2list2int, default=None)
     parser.add_argument('--GPU', type=parse.str2bool, default=True)
     parser.add_argument('--device_idx', type=int, default=0)
@@ -291,13 +307,13 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_name', type=str, default='MUTAG')
     parser.add_argument('--directed', type=parse.str2bool, default=False)
     parser.add_argument('--fold_idx', type=parse.str2list2int, default=[0])
-    parser.add_argument('--split', type=str, default='None')
+    parser.add_argument('--split', type=str, default='random')
     parser.add_argument('--split_seed', type=int, default=0) # only for random splitting
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--num_workers', type=int, default=0)
     #----------------- compression environment
     parser.add_argument('--universe_type', type=str, default='adaptive')
-    parser.add_argument('--max_dict_size', type=int, default=10000)
+    parser.add_argument('--max_dict_size', type=int, default=10)
     # constants
     parser.add_argument('--precision', type=int, default=None)
     parser.add_argument('--n_max', type=int, default=None)

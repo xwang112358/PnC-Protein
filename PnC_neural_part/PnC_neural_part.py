@@ -43,7 +43,7 @@ def main(args):
         print('Wandb logging activated... ')
         import wandb
         wandb.init(sync_tensorboard=False, project=args['wandb_project'], 
-                   reinit = False, config = args, entity=args['wandb_entity'])
+                   reinit = False, config = args, entity=args['wandb_entity'], mode='offline')
         print('[info] Monitoring with wandb')
     path = os.path.join(args['root_folder'], args['dataset'], args['dataset_name'])
     perf_opt = np.argmin
@@ -286,10 +286,10 @@ if __name__ == '__main__':
     parser.add_argument('--num_threads', type=int, default=1)
     #----------------- infrastructure + dataloader + logging + visualisation
     parser.add_argument('--mode', type=str, default='train')
-    parser.add_argument('--wandb', type=parse.str2bool, default=False)
+    parser.add_argument('--wandb', type=parse.str2bool, default=True)
     parser.add_argument('--wandb_realtime', type=parse.str2bool, default=False)
     parser.add_argument('--wandb_project', type=str, default="graph_compression")
-    parser.add_argument('--wandb_entity', type=str, default="epfl")
+    parser.add_argument('--wandb_entity', type=str, default="xwang38438")
     parser.add_argument('--visualise', type=parse.str2bool, default=False)
     parser.add_argument('--inds_to_visualise', type=parse.str2list2int, default=None)
     parser.add_argument('--GPU', type=parse.str2bool, default=True)

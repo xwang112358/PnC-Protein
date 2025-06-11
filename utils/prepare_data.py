@@ -97,10 +97,10 @@ def prepare_dataset(
         # Load enzyme classification task
         task = EnzymeClassTask()
         # Convert proteins to graphs with spatial proximity (eps=6Å, k=36 neighbors)
-        dataset = task.dataset.to_graph(eps=6, k=36).pyg(transform=my_transform)
+        dataset = task.dataset.to_graph(eps=5, k=36).pyg(transform=my_transform)
 
         # Use validation set for now (could be modified to use train/test)
-        graphs_ptg = [dataset[i] for i in task.val_index]
+        graphs_ptg = [dataset[i] for i in task.val_index][:50]
         num_classes = task.num_classes
         num_node_type, num_edge_type = None, None
 
@@ -129,13 +129,13 @@ def prepape_input_features(args, graphs_ptg, path):
     """
 
     # Optionally remove original features and use dummy features
-    if "retain_features" in args and not args["retain_features"]:
-        for graph in graphs_ptg:
-            graph.x = torch.ones((graph.x.shape[0], 1))
-
+    # if "retain_features" in args and not args["retain_features"]:
+    #     for graph in graphs_ptg:
+    #         graph.x = torch.ones((graph.x.shape[0], 1))
+    print(graphs_ptg[0].x.shape)
     # Determine node feature dimensions
     d_in_node_features = 1 if graphs_ptg[0].x.dim() == 1 else graphs_ptg[0].x.shape[1]
-
+    print("In prepare_input_features, d_in_node_features:", d_in_node_features)
     # Determine edge feature dimensions
     if hasattr(graphs_ptg[0], "edge_features"):
         d_in_edge_features = (

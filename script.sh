@@ -1,0 +1,3 @@
+python PnC_Protein.py --batch_size=16 --d_out=16 --num_layers 2 --dataset=bioinformatics --dataset_name=MUTAG --lr_dict=0.1 --lr_policy=0.001 --n_h_max_dict=10 
+
+python PnC_Protein.py --batch_size=8 --d_out=16 --num_layers 2 --dataset=proteinshake --dataset_name=proteinshake --lr_dict=0.1 --lr_policy=0.001 --n_h_max_dict=10 --split=random --inds_to_visualise 1,2,3 --num_epochs 1 --node_attr_encoding uniform 

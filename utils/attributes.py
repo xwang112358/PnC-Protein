@@ -14,7 +14,7 @@ class AttrMapping:
              'N H2 +', 'N +', 'N -', 'S -', 'I', 'P', 'O H1 +', 'N H1 -', 'O +',
              'S +', 'P H1', 'P H2', 'C H2 -', 'P +', 'S H1 +', 'C H1 -', 'P H1 +']]
             self.edge_attr_values = [['N', 'S', 'D', 'T']]
-        elif dataset_name == 'PROTEINSHAKE':
+        elif dataset_name == 'proteinshake':
             # 20 standard amino acids in ARNDCEQGHILKMFPSTWYV order
             self.node_attr_values = [['A', 'R', 'N', 'D', 'C', 
                              'E', 'Q', 'G', 'H', 'I', 
@@ -26,6 +26,9 @@ class AttrMapping:
         #     raise NotImplementedError
         self.mapping_type = mapping_type
     def map(self, node_features, edge_features=None):
+        print(f'DEBUG: attr_mapping.map called with mapping_type: {self.mapping_type}')
+        print(f'DEBUG: node_features shape: {node_features.shape}')
+        
         if self.mapping_type == 'integer':
             node_attrs = node_features.unsqueeze(1) if node_features.dim()==1 else node_features
             if edge_features is not None:
@@ -38,6 +41,7 @@ class AttrMapping:
             return node_attrs, edge_attrs
         elif self.mapping_type == 'one_hot':
             node_attrs = node_features.argmax(1, keepdim=True)
+            print(f'DEBUG: argmax result: {node_attrs.flatten()}')
             if edge_features is not None:
                 if edge_features.numel()!=0:
                     edge_attrs = edge_features.argmax(1, keepdim=True)
