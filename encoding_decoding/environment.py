@@ -96,7 +96,6 @@ class CompressionEnvironment:
         self.edge_attr_unique_values = None if kwargs['edge_attr_unique_values'] is None \
             else torch.tensor(kwargs['edge_attr_unique_values'], device=self.device)
 
-        # initialise dictionary if there is prior knowledge about the containing atoms
         self.max_dict_size = max(kwargs['max_dict_size'], len(kwargs['dictionary']))
         # empirical estimation of the atom probabilities: Important to accelerate graph isomorphism checks
         self.empirical_atom_probs = torch.ones((self.max_dict_size,), device=self.device) / self.max_dict_size

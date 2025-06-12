@@ -121,6 +121,10 @@ def test_neural_part(
             subgraphs, log_probs_actions, visualise_data_dict = agent.compress(
                 data, **kwargs_test
             )
+            # print(20*"=")
+            # print(visualise_data_dict)
+            # assert False
+
             total_costs, baseline, log_probs, cost_terms = agent.env.compute_dl(
                 subgraphs,
                 x_a,

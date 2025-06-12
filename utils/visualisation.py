@@ -272,8 +272,7 @@ def visualisation_log(
             )
             plt.close()
     else:
-         # (The rest of this function's logic remains largely the same,
-         # but it now calls the new `visualise_partitioning_nx` function)
+
         for ind_to_visualise in inds_to_visualise:
             if ind_to_visualise in visualise_data_dict:
                 # Store cost information
@@ -468,7 +467,7 @@ def visualise_subgraphs(
             for node in G.nodes(data=True):
                 node_ind = node[0]
                 attr_dict = node[1]
-                print(f'DEBUG: Node {node_ind} attr_dict: {attr_dict}')
+                # print(f'DEBUG: Node {node_ind} attr_dict: {attr_dict}')
                 node_labels[node_ind] = ",".join(
                     [
                         attr_mapping.node_attr_values[int(k)][v]
@@ -481,7 +480,7 @@ def visualise_subgraphs(
                     # For single-dimensional attributes, use the attribute value directly
                     if len(attr_dict) == 1:
                         attr_val = attr_dict["0"]
-                        print(f'DEBUG: Node {node_ind} attr_val: {attr_val}, amino acid: {attr_mapping.node_attr_values[0][attr_val]}')
+                        # print(f'DEBUG: Node {node_ind} attr_val: {attr_val}, amino acid: {attr_mapping.node_attr_values[0][attr_val]}')
                         node_colors.append(
                             colormap(attr_val / len(attr_mapping.node_attr_values[0]))
                         )
@@ -494,7 +493,7 @@ def visualise_subgraphs(
                 else:
                     node_colors.append(colormap(0.0))
         else:
-            print("DEBUG: No attr_mapping available, using default colors")
+            # print("DEBUG: No attr_mapping available, using default colors")
             node_labels = None
             
         # Process edge attributes if available

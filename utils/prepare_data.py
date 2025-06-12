@@ -100,7 +100,7 @@ def prepare_dataset(
         dataset = task.dataset.to_graph(eps=5, k=36).pyg(transform=my_transform)
 
         # Use validation set for now (could be modified to use train/test)
-        graphs_ptg = [dataset[i] for i in task.val_index][:50]
+        graphs_ptg = [dataset[i] for i in task.val_index]
         num_classes = task.num_classes
         num_node_type, num_edge_type = None, None
 

@@ -57,7 +57,7 @@ def prepare_environment_args(args,
     if args['n_h_min'] is None:
         args['n_h_min'] = 1
 
-    # Set batch size bounds
+    # Set block size bounds
     args['b_max'] = int(args['n_max']) if args['b_max'] is None else max(args['b_max'], int(args['n_max']))
     args['b_min'] = math.ceil(int(args['n_max'])/args['n_h_max']) if args['b_min'] is None \
         else min(args['b_min'], math.ceil(int(args['n_max'])/args['n_h_max']))
